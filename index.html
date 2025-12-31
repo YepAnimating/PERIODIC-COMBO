@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Periodic Combo: Master Edition</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: #1e293b;
+            --text-color: #f8fafc;
+            --board-bg: #334155;
+            --cell-gap: 4px;
+            --radius: 12px;
+
+            /* Periodic Table Group Colors */
+            --alkali: #ef4444;
+            --alkaline-earth: #f97316;
+            --transition-metal: #eab308;
+            --post-transition: #22c55e;
+            --metalloid: #06b6d4;
+            --non-metal: #3b82f6;
+            --halogen: #8b5cf6;
+            --noble: #d946ef;
+            --lanthanide: #ec4899;
+            --actinide: #f43f5e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'system-ui', -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Mode Selection Screen */
+        #menu-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            gap: 15px; padding: 20px; text-align: center;
+        }
+
+        .menu-card {
+            background: var(--container-bg); padding: 18px; border-radius: 20px;
+            width: 100%; max-width: 320px; cursor: pointer; border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .menu-card:hover { border-color: #3b82f6; transform: translateY(-5px); }
+        .menu-card h2 { color: #fff; margin-bottom: 5px; font-size: 1.2rem; }
+        .menu-card p { opacity: 0.7; font-size: 0.8rem; }
+
+        /* Game UI */
+        #game-container {
+            width: 100%; max-width: 450px; padding: 15px;
+            display: none; flex-direction: column; gap: 10px;
+        }
+
+        #game-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--container-bg); padding: 10px 15px; border-radius: var(--radius);
+            position: relative;
+        }
+
+        /* Inspector Panel */
+        #inspector-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius);
+            padding: 10px;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #inspect-name { font-weight: 800; font-size: 1.1rem; color: #fff; }
+        #inspect-group { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+
+        #timer-ui { display: none; align-items: center; gap: 8px; color: #f59e0b; font-weight: 800; }
+
+        #progress-bar-container {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 4px;
+            background: rgba(255,255,255,0.1); overflow: hidden;
+        }
+        #progress-bar { height: 100%; width: 0%; background: #22c55e; transition: width 0.3s; }
+
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; display: block; }
+        .stat-value { font-size: 1.1rem; font-weight: 800; color: #fff; }
+
+        #game-board {
+            display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+            gap: var(--cell-gap); aspect-ratio: 1 / 1; background: var(--board-bg);
+            padding: var(--cell-gap); border-radius: var(--radius); position: relative;
+        }
+
+        .cell {
+            background: #475569; border-radius: 6px; display: flex; 
+            justify-content: center; align-items: center; font-weight: bold;
+            cursor: pointer; transition: transform 0.2s, background-color 0.2s; color: #000;
+        }
+        .cell .symbol { font-size: 1.2rem; pointer-events: none; }
+
+        /* Classic & Time Attack Colors */
+        .classic .alkali, .timeattack .alkali { background-color: var(--alkali); }
+        .classic .alkaline-earth, .timeattack .alkaline-earth { background-color: var(--alkaline-earth); }
+        .classic .transition-metal, .timeattack .transition-metal { background-color: var(--transition-metal); }
+        .classic .post-transition, .timeattack .post-transition { background-color: var(--post-transition); }
+        .classic .metalloid, .timeattack .metalloid { background-color: var(--metalloid); }
+        .classic .non-metal, .timeattack .non-metal { background-color: var(--non-metal); color: white; }
+        .classic .halogen, .timeattack .halogen { background-color: var(--halogen); color: white; }
+        .classic .noble, .timeattack .noble { background-color: var(--noble); color: white; }
+        .classic .lanthanide, .timeattack .lanthanide { background-color: var(--lanthanide); }
+        .classic .actinide, .timeattack .actinide { background-color: var(--actinide); color: white; }
+
+        /* Scientist Mode (No Color) */
+        .scientist .cell { background-color: #cbd5e1; color: #0f172a; }
+
+        .clearing { animation: popOut 0.4s forwards; }
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; filter: brightness(2); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .overlay-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 50; border-radius: var(--radius); text-align: center;
+            padding: 20px;
+        }
+        .overlay-text { color: #fbbf24; font-size: 2.5rem; font-weight: 900; margin-bottom: 10px; }
+
+        #game-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        button { padding: 12px; border: none; border-radius: 50px; font-weight: 700; font-size: 0.8rem; cursor: pointer; color: white; background: #334155; }
+        #reset-btn { background: #ef4444; }
+        .selected { outline: 3px solid white; transform: scale(1.1); z-index: 10; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body>
+
+    <div id="menu-screen">
+        <h1 style="color: #fff; margin-bottom: 10px;">Periodic Combo</h1>
+        <div class="menu-card" onclick="startGame('classic')">
+            <h2>Classic Mode</h2>
+            <p>Match elements by color. Gain points to reach the next level.</p>
+        </div>
+        <div class="menu-card" onclick="startGame('scientist')">
+            <h2>Scientist Mode</h2>
+            <p>No colors! Use the top info bar to identify element groups.</p>
+        </div>
+        <div class="menu-card" onclick="startGame('timeattack')">
+            <h2>Time Attack</h2>
+            <p>Fast-paced color matching. Matches add bonus time!</p>
+        </div>
+    </div>
+
+    <main id="game-container">
+        <header id="game-header">
+            <div class="stat-box" id="level-stat"><span class="stat-label">Level</span><span id="current-level" class="stat-value">1</span></div>
+            <div class="stat-box" id="timer-ui"><span class="stat-label">Time</span><span id="timer-value" class="stat-value">60</span></div>
+            <div class="stat-box"><span class="stat-label">Score</span><span id="score-value" class="stat-value">0</span></div>
+            <div class="stat-box" id="goal-stat"><span class="stat-label">Goal</span><span id="score-goal" class="stat-value">1000</span></div>
+            <div id="progress-bar-container"><div id="progress-bar"></div></div>
+        </header>
+
+        <section id="inspector-panel">
+            <div id="inspect-name">Select an Element</div>
+            <div id="inspect-group">Match 3 of the same group</div>
+        </section>
+
+        <div id="game-board">
+            <div id="level-up-ui" class="overlay-screen"><div class="level-up-text" style="color:#fbbf24; font-size: 2.5rem; font-weight: 900;">LEVEL UP!</div></div>
+            <div id="game-over-ui" class="overlay-screen">
+                <div class="overlay-text">GAME OVER</div>
+                <p id="final-score" style="color: white; margin-bottom: 20px; font-size: 1.2rem;"></p>
+                <button onclick="location.reload()" style="background:#3b82f6; width: 150px;">Main Menu</button>
+            </div>
+        </div>
+
+        <footer id="game-controls">
+            <button id="audio-btn">Mute</button>
+            <button onclick="location.reload()" style="background:#3b82f6">Menu</button>
+            <button id="reset-btn">Restart</button>
+        </footer>
+    </main>
+
+    <script>
+        const ALL_ELEMENTS = [
+            { s: "H", n: "Hydrogen", t: "non-metal" }, { s: "He", n: "Helium", t: "noble" },
+            { s: "Li", n: "Lithium", t: "alkali" }, { s: "Be", n: "Beryllium", t: "alkaline-earth" },
+            { s: "B", n: "Boron", t: "metalloid" }, { s: "C", n: "Carbon", t: "non-metal" },
+            { s: "N", n: "Nitrogen", t: "non-metal" }, { s: "O", n: "Oxygen", t: "non-metal" },
+            { s: "F", n: "Fluorine", t: "halogen" }, { s: "Ne", n: "Neon", t: "noble" },
+            { s: "Na", n: "Sodium", t: "alkali" }, { s: "Mg", n: "Magnesium", t: "alkaline-earth" },
+            { s: "Al", n: "Aluminum", t: "post-transition" }, { s: "Si", n: "Silicon", t: "metalloid" },
+            { s: "P", n: "Phosphorus", t: "non-metal" }, { s: "S", n: "Sulfur", t: "non-metal" },
+            { s: "Cl", n: "Chlorine", t: "halogen" }, { s: "Ar", n: "Argon", t: "noble" },
+            { s: "K", n: "Potassium", t: "alkali" }, { s: "Ca", n: "Calcium", t: "alkaline-earth" },
+            { s: "Ti", n: "Titanium", t: "transition-metal" }, { s: "Fe", n: "Iron", t: "transition-metal" },
+            { s: "Cu", n: "Copper", t: "transition-metal" }, { s: "Zn", n: "Zinc", t: "transition-metal" },
+            { s: "Ag", n: "Silver", t: "transition-metal" }, { s: "Au", n: "Gold", t: "transition-metal" },
+            { s: "U", n: "Uranium", t: "actinide" }, { s: "Pu", n: "Plutonium", t: "actinide" },
+            { s: "La", n: "Lanthanum", t: "lanthanide" }, { s: "Ce", n: "Cerium", t: "lanthanide" }
+        ];
+
+        const GROUP_DIFFICULTY = ["non-metal", "noble", "alkali", "halogen", "alkaline-earth", "metalloid", "post-transition", "transition-metal", "lanthanide", "actinide"];
+
+        let boardState = [];
+        let score = 0, level = 1, scoreGoal = 1000, timeLeft = 60;
+        let isProcessing = false, firstSelection = null, gameMode = 'classic', timerInterval = null;
+
+        const AudioEngine = {
+            ctx: null, gain: null, muted: false,
+            init() { if(!this.ctx) { this.ctx = new AudioContext(); this.gain = this.ctx.createGain(); this.gain.connect(this.ctx.destination); this.loop(); } },
+            play(f, t, d, v=0.05) { if(!this.ctx || this.muted) return; const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type=t; o.frequency.value=f; g.gain.setValueAtTime(v, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+d); o.connect(g); g.connect(this.gain); o.start(); o.stop(this.ctx.currentTime+d); },
+            loop() { setInterval(() => { if(!this.muted) this.play(60, 'sine', 0.2, 0.02); }, 800); }
+        };
+
+        function startGame(mode) {
+            gameMode = mode;
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            document.getElementById('game-board').className = mode;
+            
+            if(mode === 'timeattack') {
+                document.getElementById('timer-ui').style.display = 'flex';
+                document.getElementById('level-stat').style.display = 'none';
+                document.getElementById('goal-stat').style.display = 'none';
+                startTimer();
+            }
+            initBoard();
+        }
+
+        function startTimer() {
+            timeLeft = 60;
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-value').textContent = timeLeft;
+                if(timeLeft <= 0) gameOver();
+            }, 1000);
+        }
+
+        function gameOver() {
+            clearInterval(timerInterval);
+            isProcessing = true;
+            document.getElementById('game-over-ui').style.display = 'flex';
+            document.getElementById('final-score').textContent = `Final Score: ${score}`;
+            AudioEngine.play(100, 'sawtooth', 0.5);
+        }
+
+        function initBoard() {
+            score = 0; level = 1; scoreGoal = 1000;
+            boardState = [];
+            const boardEl = document.getElementById('game-board');
+            const overlays = boardEl.querySelectorAll('.overlay-screen');
+            boardEl.innerHTML = '';
+            overlays.forEach(o => boardEl.appendChild(o));
+            
+            for(let r=0; r<8; r++) {
+                boardState[r] = [];
+                for(let c=0; c<8; c++) {
+                    const el = getRandomElement();
+                    boardState[r][c] = el;
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${el.t}`;
+                    cell.dataset.row = r; cell.dataset.col = c;
+                    cell.innerHTML = `<span class="symbol">${el.s}</span>`;
+                    cell.onclick = () => handleTap(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+            updateUI();
+            processMatches(false);
+        }
+
+        function getRandomElement() {
+            const difficultyCount = (gameMode === 'classic') ? Math.min(4 + (level-1)*2, 10) : 8;
+            const pool = ALL_ELEMENTS.filter(e => GROUP_DIFFICULTY.slice(0, difficultyCount).includes(e.t));
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        async function handleTap(r, c) {
+            AudioEngine.init();
+            if(isProcessing) return;
+            
+            const element = boardState[r][c];
+            document.getElementById('inspect-name').textContent = `${element.s} - ${element.n}`;
+            document.getElementById('inspect-group').textContent = `Group: ${element.t.replace('-', ' ')}`;
+
+            const domEl = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+            
+            if(!firstSelection) {
+                firstSelection = { r, c, dom: domEl };
+                domEl.classList.add('selected');
+                AudioEngine.play(400, 'sine', 0.1);
+            } else {
+                const r1 = firstSelection.r, c1 = firstSelection.c;
+                firstSelection.dom.classList.remove('selected');
+                
+                if(r1 === r && c1 === c) {
+                    firstSelection = null;
+                    return;
+                }
+
+                if(Math.abs(r1-r) + Math.abs(c1-c) === 1) {
+                    isProcessing = true;
+                    await swap(r1, c1, r, c);
+                    const matched = await processMatches(true);
+                    if(!matched) await swap(r1, c1, r, c);
+                    isProcessing = false;
+                }
+                firstSelection = null;
+            }
+        }
+
+        async function swap(r1, c1, r2, c2) {
+            const t = boardState[r1][c1]; boardState[r1][c1] = boardState[r2][c2]; boardState[r2][c2] = t;
+            syncUI(); AudioEngine.play(200, 'triangle', 0.1);
+            return new Promise(res => setTimeout(res, 250));
+        }
+
+        async function processMatches(scoring) {
+            let found = false, combo = 1;
+            while(true) {
+                const matches = findMatches();
+                if(matches.size === 0) break;
+                found = true;
+                if(scoring) {
+                    score += matches.size * 10 * combo;
+                    if(gameMode === 'timeattack') timeLeft += 3;
+                    if(gameMode === 'classic' && score >= scoreGoal) levelUp();
+                    updateUI();
+                    AudioEngine.play(400 + combo*50, 'sine', 0.2);
+                    combo++;
+                }
+                await animateClear(matches);
+                applyGravity();
+                syncUI();
+                await new Promise(res => setTimeout(res, 250));
+            }
+            return found;
+        }
+
+        function findMatches() {
+            const m = new Set();
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<6; c++) {
+                    const t = boardState[r][c]?.t;
+                    if(t && t===boardState[r][c+1]?.t && t===boardState[r][c+2]?.t) {
+                        m.add(`${r},${c}`); m.add(`${r},${c+1}`); m.add(`${r},${c+2}`);
+                    }
+                }
+            }
+            for(let c=0; c<8; c++) {
+                for(let r=0; r<6; r++) {
+                    const t = boardState[r][c]?.t;
+                    if(t && t===boardState[r+1][c]?.t && t===boardState[r+2][c]?.t) {
+                        m.add(`${r},${c}`); m.add(`${r+1},${c}`); m.add(`${r+2},${c}`);
+                    }
+                }
+            }
+            return m;
+        }
+
+        async function animateClear(set) {
+            set.forEach(coords => {
+                const [r, c] = coords.split(',').map(Number);
+                document.querySelector(`[data-row="${r}"][data-col="${c}"]`)?.classList.add('clearing');
+                boardState[r][c] = null;
+            });
+            return new Promise(res => setTimeout(res, 300));
+        }
+
+        function applyGravity() {
+            for(let c=0; c<8; c++) {
+                let empty = 7;
+                for(let r=7; r>=0; r--) {
+                    if(boardState[r][c]) {
+                        boardState[empty][c] = boardState[r][c];
+                        if(empty !== r) boardState[r][c] = null;
+                        empty--;
+                    }
+                }
+                for(let r=empty; r>=0; r--) boardState[r][c] = getRandomElement();
+            }
+        }
+
+        function levelUp() {
+            level++;
+            scoreGoal += level * 1000;
+            const ui = document.getElementById('level-up-ui');
+            ui.style.display = 'flex';
+            AudioEngine.play(800, 'sine', 0.5, 0.2);
+            setTimeout(() => ui.style.display = 'none', 1200);
+        }
+
+        function syncUI() {
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<8; c++) {
+                    const el = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    const d = boardState[r][c];
+                    if(el) {
+                        el.className = `cell ${d?.t || ''}`;
+                        el.innerHTML = `<span class="symbol">${d?.s || ''}</span>`;
+                    }
+                }
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('score-value').textContent = score;
+            document.getElementById('current-level').textContent = level;
+            document.getElementById('score-goal').textContent = scoreGoal;
+            document.getElementById('timer-value').textContent = timeLeft;
+            
+            if(gameMode === 'classic') {
+                const prevGoal = scoreGoal - (level * 1000);
+                const progress = ((score - prevGoal) / (scoreGoal - prevGoal)) * 100;
+                document.getElementById('progress-bar').style.width = `${Math.min(100, Math.max(0, progress))}%`;
+            }
+        }
+
+        document.getElementById('audio-btn').onclick = () => {
+            AudioEngine.init(); AudioEngine.muted = !AudioEngine.muted;
+            document.getElementById('audio-btn').textContent = AudioEngine.muted ? "Unmute" : "Mute";
+        };
+        document.getElementById('reset-btn').onclick = () => {
+            if(gameMode === 'timeattack') startTimer();
+            document.getElementById('game-over-ui').style.display = 'none';
+            isProcessing = false;
+            initBoard();
+        };
+
+    </script>
+</body>
+</html>
+
+  
