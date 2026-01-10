@@ -1,8 +1,6 @@
 # PERIODIC-COMBO
 
-***VERSION 2.0.0 WILL BE THE LAST CHANGES/UPDATES UNTIL GEMINI ARENA HASN'T BEEN CONCLUDED***
-
-***WILL NOT CHANGE/UPDATE ANYTHING UNTIL GEMINI ARENA COMPETITION IS NOT FINISH***
+***UPDATE 2B NOW OUT!!!CHECK IT OUT NOW!!!***
 
 CLICK - MATCH - CLEAR - REPEAT YEHH BOI!!  No boring quizzes.  No endless memorization.  Just simple gameplay that helps you recognize elements naturally over time.
 
