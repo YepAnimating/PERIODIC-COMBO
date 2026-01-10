@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Periodic Combo</title>
+    <!-- Tailwind CSS for modern VFX and layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #020617;
+            --alkali: #ef4444; --alkaline-earth: #f97316; --transition-metal: #eab308;
+            --post-transition: #22c55e; --metalloid: #06b6d4; --non-metal: #3b82f6;
+            --halogen: #8b5cf6; --noble: #d946ef; --lanthanide: #fb7185; --actinide: #94a3b8;
+        }
+
+        /* GPU Acceleration for smooth performance */
+        * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
+        body { background-color: var(--bg-color); overflow: hidden; }
+
+        /* Cube Tile Design */
+        .cell { 
+            will-change: transform, opacity;
+            transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+            transform: translateZ(0); 
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        /* Category Colors */
+        .alkali-metal { background: var(--alkali); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3), 0 0 15px rgba(239, 68, 68, 0.3); }
+        .alkaline-earth-metal { background: var(--alkaline-earth); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); }
+        .transition-metal { background: var(--transition-metal); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); }
+        .post-transition-metal { background: var(--post-transition); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); }
+        .metalloid { background: var(--metalloid); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); }
+        .non-metal { background: var(--non-metal); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); color: white; }
+        .halogen { background: var(--halogen); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); color: white; }
+        .noble-gas { background: var(--noble); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3), 0 0 20px rgba(217, 70, 239, 0.4); color: white; }
+        .lanthanide { background: var(--lanthanide); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); }
+        .actinide { background: var(--actinide); box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3); color: black; }
+
+        .scientist .cell { background: #1e293b !important; color: #f8fafc !important; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.4) !important; border: 1px solid rgba(255,255,255,0.05) !important; }
+
+        /* Explorer Mode Styles */
+        .explorer-distractor { opacity: 0.8; filter: saturate(0.7); }
+        .explorer-target { z-index: 10; transform: scale(1.05); box-shadow: 0 0 20px 2px white; animation: explorer-glow 2s infinite; outline: 2px solid white; }
+        @keyframes explorer-glow {
+            0%, 100% { filter: brightness(1.1); }
+            50% { filter: brightness(1.4); }
+        }
+
+        /* Stacked Feedback Popups */
+        .feedback-container {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 1000;
+            gap: 10px;
+        }
+
+        .feedback-popup {
+            font-weight: 900;
+            text-align: center;
+            text-transform: uppercase;
+            will-change: transform, opacity;
+            animation: feedback-readable 1.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            -webkit-text-stroke: 1.5px rgba(0,0,0,0.8);
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+        }
+
+        @keyframes feedback-readable {
+            0% { transform: scale(0.5); opacity: 0; }
+            15% { transform: scale(1.1); opacity: 1; }
+            20% { transform: scale(1); opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-80px); opacity: 0; }
+        }
+
+        .clearing { animation: atomPop 0.35s ease-out forwards; }
+        @keyframes atomPop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); filter: brightness(1.5); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .selected-cell {
+            transform: scale(0.9) translateZ(0);
+            outline: 4px solid white;
+            z-index: 20;
+            animation: border-pulse 1.2s infinite;
+        }
+        @keyframes border-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+
+        .shuffling-board .cell {
+            animation: soft-vibrate 0.4s infinite linear;
+        }
+        @keyframes soft-vibrate {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(1deg); }
+            75% { transform: rotate(-1deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-glow {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Menu Screen -->
+    <div id="menu-screen" class="fixed inset-0 bg-slate-950 z-[2000] flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div class="relative mb-8">
+            <h1 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-400 via-indigo-400 to-emerald-400 tracking-tighter italic">PERIODIC COMBO</h1>
+            <div class="h-1 w-24 bg-gradient-to-r from-blue-500 to-emerald-500 mx-auto mt-2 rounded-full opacity-50"></div>
+        </div>
+        <div class="grid gap-4 w-full max-w-sm">
+            <button onclick="startGame('classic')" class="glass-panel p-5 rounded-3xl hover:border-blue-500/50 transition-all text-left active:scale-95">
+                <h2 class="text-xl font-black text-blue-400">Classic Mode</h2>
+                <p class="text-xs text-slate-400 font-medium">Progressive challenge & tier unlocks.</p>
+            </button>
+            <button onclick="startGame('explorer')" class="glass-panel p-5 rounded-3xl border-emerald-500/30 hover:border-emerald-500/60 transition-all text-left active:scale-95">
+                <h2 class="text-xl font-black text-emerald-400">Element Explorer</h2>
+                <p class="text-xs text-slate-400 font-medium">Learn groups one by one. 20 levels per group.</p>
+            </button>
+            <button onclick="startGame('scientist')" class="glass-panel p-5 rounded-3xl hover:border-emerald-500/50 transition-all text-left active:scale-95">
+                <h2 class="text-xl font-black text-slate-400">Scientist Mode</h2>
+                <p class="text-xs text-slate-400 font-medium">Memory test: No colors, only symbols.</p>
+            </button>
+            <button onclick="startGame('endlesstime')" class="glass-panel p-5 rounded-3xl hover:border-amber-500/50 transition-all text-left active:scale-95">
+                <h2 class="text-xl font-black text-amber-400">Endless Time</h2>
+                <p class="text-xs text-slate-400 font-medium">Maintain reaction stability vs the clock.</p>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game UI -->
+    <main id="game-container" class="hidden flex-col gap-4 w-full max-w-md">
+        <header id="game-header" class="glass-panel p-4 rounded-[2.5rem] relative flex justify-between items-center shadow-2xl">
+            <div id="level-stat" class="text-center px-2">
+                <span class="block text-[9px] uppercase tracking-[0.2em] text-slate-500 font-black">Level</span>
+                <span id="current-level" class="text-2xl font-black italic text-blue-400">1</span>
+            </div>
+            <div id="timer-stat" class="hidden text-center px-2">
+                <span class="block text-[9px] uppercase tracking-[0.2em] text-amber-500 font-black">Time</span>
+                <span id="timer-value" class="text-2xl font-black text-amber-400">60</span>
+            </div>
+            <div class="text-center px-2">
+                <span class="block text-[9px] uppercase tracking-[0.2em] text-slate-500 font-black">Score</span>
+                <span id="score-value" class="text-2xl font-black">0</span>
+            </div>
+            <div id="goal-stat" class="text-center px-2">
+                <span class="block text-[9px] uppercase tracking-[0.2em] text-slate-500 font-black">Goal</span>
+                <span id="score-goal" class="text-2xl font-black text-emerald-400">1000</span>
+            </div>
+            <div id="progress-bar-container" class="absolute bottom-2 left-8 right-8 h-1 bg-white/5 overflow-hidden rounded-full">
+                <div id="progress-bar" class="h-full w-0 bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500 progress-glow"></div>
+            </div>
+        </header>
+
+        <div id="stress-container" class="hidden w-full h-3 bg-slate-900/50 rounded-full p-0.5 border border-white/5 overflow-hidden">
+            <div id="stress-bar" class="h-full w-0 bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 rounded-full transition-all duration-300"></div>
+        </div>
+
+        <section id="inspector-panel" class="bg-slate-900/40 p-3 rounded-3xl text-center border border-white/5">
+            <div id="inspect-name" class="text-xl font-black text-white tracking-tight">Bonding Ready...</div>
+            <div id="inspect-group" class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Lab Environment: Active</div>
+        </section>
+
+        <div id="game-board" class="grid grid-cols-8 grid-rows-8 gap-1.5 aspect-square bg-slate-950 p-2 rounded-[2.5rem] relative border-[6px] border-slate-900/80 shadow-inner overflow-hidden">
+            <div id="feedback-layer" class="feedback-container"></div>
+
+            <!-- Overlays -->
+            <div id="level-up-ui" class="hidden absolute inset-0 z-50 glass-panel flex flex-col items-center justify-center rounded-3xl">
+                <h2 id="levelup-title" class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600 animate-bounce italic">VALENCE SHIFT!</h2>
+                <p id="levelup-subtext" class="text-white/60 font-black uppercase tracking-widest text-xs mt-4"></p>
+            </div>
+            <div id="game-over-ui" class="hidden absolute inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-center rounded-3xl p-6 text-center">
+                <h2 class="text-5xl font-black text-red-500 mb-4 tracking-tighter italic">REACTION ENDED</h2>
+                <p id="final-score" class="text-2xl text-white font-black mb-8"></p>
+                <button onclick="location.reload()" class="bg-gradient-to-br from-blue-600 to-indigo-700 px-12 py-4 rounded-full font-black uppercase tracking-tighter shadow-xl active:scale-95 transition-transform">Re-Initialize</button>
+            </div>
+            <div id="shuffle-ui" class="hidden absolute inset-0 z-[60] glass-panel flex flex-col items-center justify-center rounded-3xl text-center">
+                <div class="text-6xl animate-spin mb-4">🧪</div>
+                <h3 class="text-2xl font-black text-white italic tracking-widest uppercase">Shuffling Bonds</h3>
+            </div>
+        </div>
+
+        <footer class="grid grid-cols-3 gap-4">
+            <button id="audio-btn" class="glass-panel py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest border-white/5 active:bg-white/5 transition-colors">Mute</button>
+            <button onclick="location.reload()" class="glass-panel py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest border-white/5 active:bg-white/5 transition-colors">Menu</button>
+            <button id="reset-btn" class="bg-red-900/20 text-red-500 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest border border-red-500/20 active:bg-red-500/20 transition-colors">Restart</button>
+        </footer>
+    </main>
+
+    <script>
+        const ALL_ELEMENTS = [
+            { s: "H", n: "Hydrogen", t: "non-metal" }, { s: "He", n: "Helium", t: "noble-gas" },
+            { s: "Li", n: "Lithium", t: "alkali-metal" }, { s: "Be", n: "Beryllium", t: "alkaline-earth-metal" },
+            { s: "B", n: "Boron", t: "metalloid" }, { s: "C", n: "Carbon", t: "non-metal" },
+            { s: "N", n: "Nitrogen", t: "non-metal" }, { s: "O", n: "Oxygen", t: "non-metal" },
+            { s: "F", n: "Fluorine", t: "halogen" }, { s: "Ne", n: "Neon", t: "noble-gas" },
+            { s: "Na", n: "Sodium", t: "alkali-metal" }, { s: "Mg", n: "Magnesium", t: "alkaline-earth-metal" },
+            { s: "Al", n: "Aluminum", t: "post-transition-metal" }, { s: "Si", n: "Silicon", t: "metalloid" },
+            { s: "P", n: "Phosphorus", t: "non-metal" }, { s: "S", n: "Sulfur", t: "non-metal" },
+            { s: "Cl", n: "Chlorine", t: "halogen" }, { s: "Ar", n: "Argon", t: "noble-gas" },
+            { s: "K", n: "Potassium", t: "alkali-metal" }, { s: "Ca", n: "Calcium", t: "alkaline-earth-metal" },
+            { s: "Sc", n: "Scandium", t: "transition-metal" }, { s: "Ti", n: "Titanium", t: "transition-metal" },
+            { s: "V", n: "Vanadium", t: "transition-metal" }, { s: "Cr", n: "Chromium", t: "transition-metal" },
+            { s: "Mn", n: "Manganese", t: "transition-metal" }, { s: "Fe", n: "Iron", t: "transition-metal" },
+            { s: "Co", n: "Cobalt", t: "transition-metal" }, { s: "Ni", n: "Nickel", t: "transition-metal" },
+            { s: "Cu", n: "Copper", t: "transition-metal" }, { s: "Zn", n: "Zinc", t: "transition-metal" },
+            { s: "Ga", n: "Gallium", t: "post-transition-metal" }, { s: "Ge", n: "Germanium", t: "metalloid" },
+            { s: "As", n: "Arsenic", t: "metalloid" }, { s: "Se", n: "Selenium", t: "non-metal" },
+            { s: "Br", n: "Bromine", t: "halogen" }, { s: "Kr", n: "Krypton", t: "noble-gas" },
+            { s: "Rb", n: "Rubidium", t: "alkali-metal" }, { s: "Sr", n: "Strontium", t: "alkaline-earth-metal" },
+            { s: "Y", n: "Yttrium", t: "transition-metal" }, { s: "Zr", n: "Zirconium", t: "transition-metal" },
+            { s: "Nb", n: "Niobium", t: "transition-metal" }, { s: "Mo", n: "Molybdenum", t: "transition-metal" },
+            { s: "Tc", n: "Technetium", t: "transition-metal" }, { s: "Ru", n: "Ruthenium", t: "transition-metal" },
+            { s: "Rh", n: "Rhodium", t: "transition-metal" }, { s: "Pd", n: "Palladium", t: "transition-metal" },
+            { s: "Ag", n: "Silver", t: "transition-metal" }, { s: "Cd", n: "Cadmium", t: "transition-metal" },
+            { s: "In", n: "Indium", t: "post-transition-metal" }, { s: "Sn", n: "Tin", t: "post-transition-metal" },
+            { s: "Sb", n: "Antimony", t: "metalloid" }, { s: "Te", n: "Tellurium", t: "metalloid" },
+            { s: "I", n: "Iodine", t: "halogen" }, { s: "Xe", n: "Xenon", t: "noble-gas" },
+            { s: "Cs", n: "Cesium", t: "alkali-metal" }, { s: "Ba", n: "Barium", t: "alkaline-earth-metal" },
+            { s: "La", n: "Lanthanum", t: "lanthanide" }, { s: "Ce", n: "Cerium", t: "lanthanide" },
+            { s: "Pr", n: "Praseodymium", t: "lanthanide" }, { s: "Nd", n: "Neodymium", t: "lanthanide" },
+            { s: "Pm", n: "Promethium", t: "lanthanide" }, { s: "Sm", n: "Samarium", t: "lanthanide" },
+            { s: "Eu", n: "Europium", t: "lanthanide" }, { s: "Gd", n: "Gadolinium", t: "lanthanide" },
+            { s: "Tb", n: "Terbium", t: "lanthanide" }, { s: "Dy", n: "Dysprosium", t: "lanthanide" },
+            { s: "Ho", n: "Holmium", t: "lanthanide" }, { s: "Er", n: "Erbium", t: "lanthanide" },
+            { s: "Tm", n: "Thulium", t: "lanthanide" }, { s: "Yb", n: "Ytterbium", t: "lanthanide" },
+            { s: "Lu", n: "Lutetium", t: "lanthanide" }, { s: "Hf", n: "Hafnium", t: "transition-metal" },
+            { s: "Ta", n: "Tantalum", t: "transition-metal" }, { s: "W", n: "Tungsten", t: "transition-metal" },
+            { s: "Re", n: "Rhenium", t: "transition-metal" }, { s: "Os", n: "Osmium", t: "transition-metal" },
+            { s: "Ir", n: "Iridium", t: "transition-metal" }, { s: "Pt", n: "Platinum", t: "transition-metal" },
+            { s: "Au", n: "Gold", t: "transition-metal" }, { s: "Hg", n: "Mercury", t: "transition-metal" },
+            { s: "Tl", n: "Thallium", t: "post-transition-metal" }, { s: "Pb", n: "Lead", t: "post-transition-metal" },
+            { s: "Bi", n: "Bismuth", t: "post-transition-metal" }, { s: "Po", n: "Polonium", t: "metalloid" },
+            { s: "At", n: "Astatine", t: "halogen" }, { s: "Rn", n: "Radon", t: "noble-gas" },
+            { s: "Fr", n: "Francium", t: "alkali-metal" }, { s: "Ra", n: "Radium", t: "alkaline-earth-metal" },
+            { s: "Ac", n: "Actinium", t: "actinide" }, { s: "Th", n: "Thorium", t: "actinide" },
+            { s: "Pa", n: "Protactinium", t: "actinide" }, { s: "U", n: "Uranium", t: "actinide" },
+            { s: "Np", n: "Neptunium", t: "actinide" }, { s: "Pu", n: "Plutonium", t: "actinide" },
+            { s: "Am", n: "Americium", t: "actinide" }, { s: "Cm", n: "Curium", t: "actinide" },
+            { s: "Bk", n: "Berkelium", t: "actinide" }, { s: "Cf", n: "Californium", t: "actinide" },
+            { s: "Es", n: "Einsteinium", t: "actinide" }, { s: "Fm", n: "Fermium", t: "actinide" },
+            { s: "Md", n: "Mendelevium", t: "actinide" }, { s: "No", n: "Nobelium", t: "actinide" },
+            { s: "Lr", n: "Lawrencium", t: "actinide" }, { s: "Rf", n: "Rutherfordium", t: "transition-metal" },
+            { s: "Db", n: "Dubnium", t: "transition-metal" }, { s: "Sg", n: "Seaborgium", t: "transition-metal" },
+            { s: "Bh", n: "Bohrium", t: "transition-metal" }, { s: "Hs", n: "Hassium", t: "transition-metal" },
+            { s: "Mt", n: "Meitnerium", t: "transition-metal" }, { s: "Ds", n: "Darmstadtium", t: "transition-metal" },
+            { s: "Rg", n: "Roentgenium", t: "transition-metal" }, { s: "Cn", n: "Copernicium", t: "transition-metal" },
+            { s: "Nh", n: "Nihonium", t: "post-transition-metal" }, { s: "Fl", n: "Flerovium", t: "post-transition-metal" },
+            { s: "Mc", n: "Moscovium", t: "post-transition-metal" }, { s: "Lv", n: "Livermorium", t: "post-transition-metal" },
+            { s: "Ts", n: "Tennessine", t: "halogen" }, { s: "Og", n: "Oganesson", t: "noble-gas" }
+        ];
+
+        const GROUPS = ["alkali-metal", "noble-gas", "alkaline-earth-metal", "halogen", "metalloid", "non-metal", "post-transition-metal", "transition-metal", "lanthanide", "actinide"];
+
+        const SCIENTIFIC_FEEDBACK = ["Sparkling Match!", "Atomically Awesome!", "Boom! Chemistry Win!", "Molecular Mastery!", "Reaction Success!", "Super Bond!", "Ionic Impact!", "Covalent Chaos!"];
+
+        let boardState = [], score = 0, level = 1, scoreGoal = 1000, timeLeft = 60, stress = 0;
+        let isProcessing = false, firstSelection = null, gameMode = 'classic', timerInterval = null;
+        let feedbackQueue = [];
+        
+        // Explorer Mode State
+        let explorerTargetType = "alkali-metal";
+        let explorerTargetMatches = 0;
+        let explorerGoal = 10;
+
+        const AudioEngine = {
+            ctx: null, gain: null, muted: false,
+            init() { if(!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); this.gain = this.ctx.createGain(); this.gain.connect(this.ctx.destination); } catch(e) {} } },
+            play(f, t, d, v=0.03) { if(!this.ctx || this.muted) return; const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type=t; o.frequency.value=f; g.gain.setValueAtTime(v, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+d); o.connect(g); g.connect(this.gain); o.start(); o.stop(this.ctx.currentTime+d); }
+        };
+
+        function startGame(mode) {
+            gameMode = mode;
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.replace('hidden', 'flex');
+            
+            if(mode === 'endlesstime') {
+                document.getElementById('timer-stat').classList.remove('hidden');
+                document.getElementById('stress-container').classList.remove('hidden');
+                ['level-stat', 'goal-stat', 'progress-bar-container'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                initBoard();
+                startEndlessTimer();
+            } else if (mode === 'scientist') {
+                document.getElementById('game-board').classList.add('scientist');
+                ['level-stat', 'goal-stat', 'progress-bar-container'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                initBoard();
+            } else if (mode === 'explorer') {
+                setupExplorerMode();
+                initBoard();
+            } else {
+                initBoard();
+            }
+        }
+
+        function setupExplorerMode() {
+            const groupIndex = Math.floor((level - 1) / 20) % GROUPS.length;
+            explorerTargetType = GROUPS[groupIndex];
+            explorerTargetMatches = 0;
+            explorerGoal = 10 + (level % 20) * 2;
+            
+            document.getElementById('current-level').textContent = level;
+            document.getElementById('score-goal').textContent = explorerGoal;
+            document.getElementById('inspect-group').textContent = `Target: ${explorerTargetType.replace(/-/g, ' ')}`;
+            document.getElementById('inspect-group').classList.add('text-emerald-400');
+        }
+
+        function initBoard() {
+            score = 0; boardState = [];
+            const boardEl = document.getElementById('game-board');
+            const overlays = Array.from(boardEl.children).filter(c => c.id.includes('ui') || c.id.includes('layer') || c.id.includes('feedback'));
+            boardEl.innerHTML = '';
+            overlays.forEach(o => boardEl.appendChild(o));
+            
+            for(let r=0; r<8; r++) {
+                boardState[r] = [];
+                for(let c=0; c<8; c++) {
+                    boardState[r][c] = getRandomElement();
+                    const cell = document.createElement('div');
+                    cell.className = `cell flex flex-col items-center justify-center font-black cursor-pointer ${boardState[r][c].t}`;
+                    cell.dataset.row = r; cell.dataset.col = c;
+                    cell.innerHTML = `<span class="symbol text-2xl leading-none drop-shadow-md pointer-events-none">${boardState[r][c].s}</span>`;
+                    cell.onclick = () => handleTap(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+            checkPossibleMoves();
+            updateUI();
+            processMatches(false);
+        }
+
+        function getRandomElement() {
+            if (gameMode === 'explorer') {
+                const targetPool = ALL_ELEMENTS.filter(e => e.t === explorerTargetType);
+                const distractorPool = ALL_ELEMENTS.filter(e => e.t !== explorerTargetType);
+                const targetProbability = 0.15;
+                
+                if (Math.random() < targetProbability) {
+                    return targetPool[Math.floor(Math.random() * targetPool.length)];
+                } else {
+                    return distractorPool[Math.floor(Math.random() * distractorPool.length)];
+                }
+            }
+            const diff = (gameMode === 'classic') ? Math.min(4 + (level-1)*2, GROUPS.length) : GROUPS.length;
+            const pool = ALL_ELEMENTS.filter(e => GROUPS.slice(0, diff).includes(e.t));
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        async function handleTap(r, c) {
+            AudioEngine.init();
+            if(isProcessing) return;
+            const el = boardState[r][c];
+            document.getElementById('inspect-name').textContent = `${el.s} - ${el.n}`;
+            if (gameMode !== 'explorer') {
+                document.getElementById('inspect-group').textContent = `Group: ${el.t.replace(/-/g, ' ')}`;
+            }
+            const domEl = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+            
+            if(!firstSelection) {
+                firstSelection = { r, c, dom: domEl };
+                domEl.classList.add('selected-cell');
+                AudioEngine.play(400, 'sine', 0.1);
+            } else {
+                const {r: r1, c: c1, dom: dom1} = firstSelection;
+                dom1.classList.remove('selected-cell');
+                if(Math.abs(r1-r) + Math.abs(c1-c) === 1) {
+                    isProcessing = true;
+                    await swap(r1, c1, r, c);
+                    if(!(await processMatches(true))) await swap(r1, c1, r, c);
+                    checkPossibleMoves();
+                    isProcessing = false;
+                }
+                firstSelection = null;
+            }
+        }
+
+        async function processMatches(scoring) {
+            let chainOccurred = false, comboCount = 0, totalCleared = 0;
+            
+            while(true) {
+                const matches = findMatches();
+                if(matches.size === 0) break;
+                
+                chainOccurred = true;
+                comboCount++;
+                totalCleared += matches.size;
+
+                if(scoring) {
+                    if (gameMode === 'explorer') {
+                        matches.forEach(coords => {
+                            const [r, c] = coords.split(',').map(Number);
+                            if (boardState[r][c] && boardState[r][c].t === explorerTargetType) {
+                                explorerTargetMatches++;
+                            }
+                        });
+                        score += matches.size * 5; 
+                    } else {
+                        score += matches.size * 10 * comboCount;
+                    }
+
+                    if(gameMode === 'endlesstime') { 
+                        // In Endless Time, matches give a direct time bonus
+                        timeLeft += (matches.size * 0.5); 
+                        // Stress is handled in the timer loop based on score
+                    }
+                    
+                    if (gameMode === 'explorer') {
+                        if (explorerTargetMatches >= explorerGoal) levelUp();
+                    } else if (gameMode === 'classic') {
+                        if(score >= scoreGoal) levelUp();
+                    }
+                    
+                    updateUI();
+                    AudioEngine.play(400 + comboCount*60, 'sine', 0.1);
+                }
+                
+                await animateClear(matches);
+                applyGravity();
+                syncUI();
+                await new Promise(res => setTimeout(res, 200));
+            }
+
+            if(scoring && chainOccurred) {
+                let msg = (gameMode === 'explorer' && comboCount > 1) ? "Chain Reaction" : null;
+                showDynamicFeedback(comboCount, totalCleared, msg);
+            }
+            return chainOccurred;
+        }
+
+        function findMatches() {
+            const m = new Set();
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<6; c++) {
+                    const t = boardState[r][c]?.t;
+                    if(t && t===boardState[r][c+1]?.t && t===boardState[r][c+2]?.t) {
+                        m.add(`${r},${c}`); m.add(`${r},${c+1}`); m.add(`${r},${c+2}`);
+                    }
+                }
+            }
+            for(let c=0; c<8; c++) {
+                for(let r=0; r<6; r++) {
+                    const t = boardState[r][c]?.t;
+                    if(t && t===boardState[r+1][c]?.t && t===boardState[r+2][c]?.t) {
+                        m.add(`${r},${c}`); m.add(`${r+1},${c}`); m.add(`${r+2},${c}`);
+                    }
+                }
+            }
+            return m;
+        }
+
+        async function animateClear(set) {
+            set.forEach(coords => {
+                const [r, c] = coords.split(',').map(Number);
+                const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                if (cell) cell.classList.add('clearing');
+                boardState[r][c] = null;
+            });
+            return new Promise(res => setTimeout(res, 300));
+        }
+
+        function applyGravity() {
+            for(let c=0; c<8; c++) {
+                let empty = 7;
+                for(let r=7; r>=0; r--) {
+                    if(boardState[r][c]) {
+                        boardState[empty][c] = boardState[r][c];
+                        if(empty !== r) boardState[r][c] = null;
+                        empty--;
+                    }
+                }
+                for(let r=empty; r>=0; r--) boardState[r][c] = getRandomElement();
+            }
+        }
+
+        function checkPossibleMoves() {
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<8; c++) {
+                    const n = [[r+1, c], [r, c+1]];
+                    for(const [nr, nc] of n) {
+                        if(nr < 8 && nc < 8) {
+                            [boardState[r][c], boardState[nr][nc]] = [boardState[nr][nc], boardState[r][c]];
+                            if(findMatches().size > 0) {
+                                [boardState[r][c], boardState[nr][nc]] = [boardState[nr][nc], boardState[r][c]];
+                                return true;
+                            }
+                            [boardState[r][c], boardState[nr][nc]] = [boardState[nr][nc], boardState[r][c]];
+                        }
+                    }
+                }
+            }
+            shuffleBoard();
+            return false;
+        }
+
+        async function shuffleBoard() {
+            isProcessing = true;
+            document.getElementById('shuffle-ui').classList.remove('hidden');
+            document.getElementById('game-board').classList.add('shuffling-board');
+            await new Promise(res => setTimeout(res, 1200));
+            for(let r=0; r<8; r++) for(let c=0; c<8; c++) boardState[r][c] = getRandomElement();
+            syncUI();
+            document.getElementById('shuffle-ui').classList.add('hidden');
+            document.getElementById('game-board').classList.remove('shuffling-board');
+            isProcessing = false;
+            checkPossibleMoves();
+        }
+
+        function levelUp() {
+            level++;
+            const ui = document.getElementById('level-up-ui');
+            const title = document.getElementById('levelup-title');
+            const sub = document.getElementById('levelup-subtext');
+
+            if (gameMode === 'explorer') {
+                const oldType = explorerTargetType;
+                setupExplorerMode();
+                if (oldType !== explorerTargetType) {
+                    title.textContent = "GROUP MASTERED!";
+                    sub.textContent = `New Target: ${explorerTargetType.toUpperCase().replace(/-/g, ' ')}`;
+                } else {
+                    title.textContent = "LEVEL COMPLETE!";
+                    sub.textContent = `Learning ${explorerTargetType.replace(/-/g, ' ')}`;
+                }
+            } else if (gameMode === 'endlesstime') {
+                title.textContent = "VALENCE SHIFT!";
+                sub.textContent = `STABILITY INCREASED - LEVEL ${level}`;
+            } else {
+                scoreGoal += 1500;
+                document.getElementById('score-goal').textContent = scoreGoal;
+                title.textContent = "VALENCE SHIFT!";
+                sub.textContent = `GOAL REACHED - LEVEL ${level}`;
+            }
+
+            ui.classList.remove('hidden');
+            setTimeout(() => ui.classList.add('hidden'), 2000);
+            
+            document.getElementById('current-level').textContent = level;
+            AudioEngine.play(800, 'sine', 0.5);
+            updateUI();
+        }
+
+        function startEndlessTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if(isProcessing) return;
+
+                // BUG FIX: Stress bar and timer depletion react to overall score
+                // Score 0 to 5000 scales stress 0 to 100
+                const scoreCap = 10000;
+                stress = Math.min(100, (score / scoreCap) * 100);
+                
+                // Base depletion is 0.8s per tick. 
+                // Full stress adds up to 1.5s extra depletion per tick.
+                const baseDepletion = 0.8;
+                const stressDepletion = (stress / 100) * 1.5;
+                
+                timeLeft -= (baseDepletion + stressDepletion);
+                
+                document.getElementById('timer-value').textContent = Math.max(0, Math.ceil(timeLeft));
+                document.getElementById('stress-bar').style.width = `${stress}%`;
+                
+                // Visual level tracking for Endless based on score
+                const currentVirtualLevel = Math.floor(score / 2000) + 1;
+                if(currentVirtualLevel > level) levelUp();
+
+                if(timeLeft <= 0) gameOver();
+            }, 1000);
+        }
+
+        function gameOver() {
+            clearInterval(timerInterval);
+            document.getElementById('game-over-ui').classList.remove('hidden');
+            document.getElementById('final-score').textContent = `Score: ${Math.floor(score)}`;
+        }
+
+        function syncUI() {
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<8; c++) {
+                    const el = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    const d = boardState[r][c];
+                    if(el) { 
+                        let extraClass = "";
+                        if (gameMode === 'explorer' && d) {
+                            extraClass = (d.t === explorerTargetType) ? "explorer-target" : "explorer-distractor";
+                        }
+                        el.className = `cell flex flex-col items-center justify-center font-black cursor-pointer ${d?.t || ''} ${extraClass}`; 
+                        el.innerHTML = `<span class="symbol text-2xl leading-none drop-shadow-md pointer-events-none">${d?.s || ''}</span>`;
+                    }
+                }
+            }
+        }
+
+        async function swap(r1, c1, r2, c2) {
+            [boardState[r1][c1], boardState[r2][c2]] = [boardState[r2][c2], boardState[r1][c1]];
+            syncUI(); AudioEngine.play(240, 'triangle', 0.08);
+            return new Promise(res => setTimeout(res, 200));
+        }
+
+        function updateUI() {
+            document.getElementById('score-value').textContent = Math.floor(score);
+            if(gameMode === 'classic') {
+                const prog = (score / scoreGoal) * 100;
+                document.getElementById('progress-bar').style.width = `${Math.min(100, Math.max(0, prog))}%`;
+            } else if (gameMode === 'explorer') {
+                const prog = (explorerTargetMatches / explorerGoal) * 100;
+                document.getElementById('progress-bar').style.width = `${Math.min(100, Math.max(0, prog))}%`;
+            }
+        }
+
+        function showDynamicFeedback(comboCount, totalCleared, specialMsg) {
+            const msg = specialMsg || SCIENTIFIC_FEEDBACK[Math.floor(Math.random() * SCIENTIFIC_FEEDBACK.length)];
+            const color = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa'][Math.min(comboCount-1, 4)];
+            feedbackQueue.push({ msg, comboCount, totalCleared, color });
+            if(feedbackQueue.length === 1) processFeedbackQueue();
+        }
+
+        async function processFeedbackQueue() {
+            if(feedbackQueue.length === 0) return;
+            const { msg, comboCount, totalCleared, color } = feedbackQueue[0];
+            const container = document.getElementById('feedback-layer');
+            const popup = document.createElement('div');
+            popup.className = `feedback-popup ${comboCount > 2 ? 'text-4xl' : 'text-3xl'}`;
+            popup.style.color = color;
+            popup.innerHTML = `<div class="flex flex-col items-center"><span class="italic font-black">${msg}</span><span class="text-base font-black text-white">${comboCount > 1 ? 'x' + comboCount : ''} +${totalCleared * 10}</span></div>`;
+            container.appendChild(popup);
+            await new Promise(res => setTimeout(res, 800));
+            setTimeout(() => popup.remove(), 1000);
+            feedbackQueue.shift();
+            processFeedbackQueue();
+        }
+
+        document.getElementById('audio-btn').onclick = () => { AudioEngine.init(); AudioEngine.muted = !AudioEngine.muted; document.getElementById('audio-btn').textContent = AudioEngine.muted ? "Unmute" : "Mute"; };
+        document.getElementById('reset-btn').onclick = () => { location.reload(); };
+    </script>
+</body>
+</html>
+
+  
