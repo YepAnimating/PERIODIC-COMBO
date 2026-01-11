@@ -18,7 +18,7 @@ Our Captain Challenge:
 https://www.facebook.com/share/1JfEyqhDnE/
 
 My Whole Conversation with Gemini:
-https://g.co/gemini/share/0fe73a32cdf5
+https://gemini.google.com/share/109cf103b525
 
 //CHANGES//
 (All these Changes are made using Gemini Canvas Mode Prompting)
