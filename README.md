@@ -1,6 +1,7 @@
 # PERIODIC-COMBO
 
 ***UPDATE 2B NOW OUT!!!CHECK IT OUT NOW!!!***
+***NEW UPDATE COMING SOON！！！MUCH MORE BIGGER THAN THE LAST 2 UPDATES COMBINED！！！！***
 
 CLICK - MATCH - CLEAR - REPEAT YEHH BOI!!  No boring quizzes.  No endless memorization.  Just simple gameplay that helps you recognize elements naturally over time.
 
@@ -18,7 +19,7 @@ Our Captain Challenge:
 https://www.facebook.com/share/1JfEyqhDnE/
 
 My Whole Conversation with Gemini:
-https://gemini.google.com/share/109cf103b525
+https://gemini.google.com/share/109cf103b525COMBINED！！！！
 
 //CHANGES//
 (All these Changes are made using Gemini Canvas Mode Prompting)
