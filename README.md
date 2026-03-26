@@ -1,6 +1,8 @@
 # PERIODIC-COMBO
 
 ***UPDATE 2B NOW OUT!!!CHECK IT OUT NOW!!!***
+
+
 ***NEW UPDATE COMING SOON！！！MUCH MORE BIGGER THAN THE LAST 2 UPDATES COMBINED！！！！***
 
 CLICK - MATCH - CLEAR - REPEAT YEHH BOI!!  No boring quizzes.  No endless memorization.  Just simple gameplay that helps you recognize elements naturally over time.
